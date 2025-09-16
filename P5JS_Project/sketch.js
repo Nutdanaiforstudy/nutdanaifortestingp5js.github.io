@@ -4,22 +4,24 @@ let score = 0;
 let state = "start"; // start, game, gameover
 let spawnTimer = 0;
 let bgImg;
-let catchSound, gameOverSound, music;
 
 let moveLeft = false;
 let moveRight = false;
 
 function preload() {
-  // Replace with your own local image: put it in "picture/2.jpg"
+  // your own background image in /picture/2.jpg
   bgImg = loadImage("picture/2.jpg");
 }
 
 function setup() {
-  createCanvas(480, 640);
-  paddle = new Paddle();
+  let cnv = createCanvas(480, 640);
+  cnv.elt.setAttribute("tabindex", "0"); // allow focus
+  cnv.elt.focus();
   textFont("Arial");
 
-  // Prevent default browser scroll (important for Wix)
+  paddle = new Paddle();
+
+  // prevent Wix page scroll with space/arrow keys
   window.addEventListener("keydown", function(e) {
     if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
       e.preventDefault();
@@ -93,12 +95,18 @@ function triggerGameOver() {
 function keyPressed() {
   if (state === "start" && key === " ") {
     startGame();
-    return false; // stop page from scrolling in Wix
+    return false;
   }
   else if (state === "gameover" && (key === "r" || key === "R")) {
     startGame();
     return false;
   }
+}
+
+function mousePressed() {
+  // refocus canvas when clicked (important for Wix)
+  let cnv = document.querySelector('canvas');
+  if (cnv) cnv.focus();
 }
 
 function startGame() {
