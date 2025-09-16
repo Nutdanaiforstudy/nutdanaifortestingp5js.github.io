@@ -10,13 +10,21 @@ let moveLeft = false;
 let moveRight = false;
 
 function preload() {
-  bgImg = loadImage("picture/2.jpg"); // your custom background
+  // Replace with your own local image: put it in "picture/2.jpg"
+  bgImg = loadImage("picture/2.jpg");
 }
 
 function setup() {
   createCanvas(480, 640);
   paddle = new Paddle();
   textFont("Arial");
+
+  // Prevent default browser scroll (important for Wix)
+  window.addEventListener("keydown", function(e) {
+    if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+      e.preventDefault();
+    }
+  }, false);
 }
 
 function draw() {
@@ -83,8 +91,14 @@ function triggerGameOver() {
 }
 
 function keyPressed() {
-  if (state === "start" && key === " ") startGame();
-  else if (state === "gameover" && (key === "r" || key === "R")) startGame();
+  if (state === "start" && key === " ") {
+    startGame();
+    return false; // stop page from scrolling in Wix
+  }
+  else if (state === "gameover" && (key === "r" || key === "R")) {
+    startGame();
+    return false;
+  }
 }
 
 function startGame() {
