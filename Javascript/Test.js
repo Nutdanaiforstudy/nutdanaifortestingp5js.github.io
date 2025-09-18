@@ -206,7 +206,7 @@ function keyPressed() {
     currentSprite.isFlipX = !currentSprite.isFlipX;
   }
 
-  if (key === 's' || key === 'S') {
+  if (key === 'c' || key === 'C') {   // <-- Changed stop toggle to C
     currentSprite.isStop = !currentSprite.isStop;
   }
 
