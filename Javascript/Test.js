@@ -125,25 +125,25 @@ function draw() {
   }
 }
 
-// --- Movement control ---
+// --- Movement control (Arrow keys) ---
 function handleMovement() {
   let moving = false;
 
-  if (keyIsDown(65)) { // A = left
+  if (keyIsDown(LEFT_ARROW)) { // ← left
     warriorRun.isFlipX = true;
     warriorRun.posX -= speed;
     moving = true;
   }
-  if (keyIsDown(68)) { // D = right
+  if (keyIsDown(RIGHT_ARROW)) { // → right
     warriorRun.isFlipX = false;
     warriorRun.posX += speed;
     moving = true;
   }
-  if (keyIsDown(87)) { // W = up
+  if (keyIsDown(UP_ARROW)) { // ↑ up
     warriorRun.posY -= speed;
     moving = true;
   }
-  if (keyIsDown(83)) { // S = down
+  if (keyIsDown(DOWN_ARROW)) { // ↓ down
     warriorRun.posY += speed;
     moving = true;
   }
