@@ -315,7 +315,7 @@ function setup() {
 }
 
 function draw() {
-  // background(200);
+  
   background(255, 204, 0);
 
   if (selectionMode) {
