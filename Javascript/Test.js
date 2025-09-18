@@ -75,21 +75,27 @@ class Unit {
     this.maxHealth = 100;
     this.speed = 5;
     this.attackQueue = 0;
+    this.protecting = false;
 
     // Sprites
     this.idle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, x, y, scale);
     this.attack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, x, y, scale);
     this.run = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, x, y, scale);
+    this.crouch = new Sprite("Warrior", "Crouch", "Warrior_Crouch_", "png", 6, x, y, scale);
 
     this.currentSprite = this.idle;
-    this.lastFlipX = faceLeft; // Track last facing direction
+    this.lastFlipX = faceLeft; // initial facing
     this.idle.isFlipX = faceLeft;
+    this.attack.isFlipX = faceLeft;
+    this.run.isFlipX = faceLeft;
+    this.crouch.isFlipX = faceLeft;
   }
 
   preload() {
     this.idle.preload();
     this.attack.preload();
     this.run.preload();
+    this.crouch.preload();
   }
 
   play() {
@@ -109,19 +115,16 @@ class Unit {
     let x = this.currentSprite.posX + 10;
     let y = this.currentSprite.posY - 25;
 
-    // Red background
     fill(255, 0, 0);
     rect(x, y, barWidth, barHeight);
 
-    // Green foreground
     fill(0, 255, 0);
     rect(x, y, barWidth * healthRatio, barHeight);
 
-    // Percentage text
     fill(0);
     textSize(10);
-    textAlign(CENTER, CENTER);
-    text(Math.round(healthRatio * 100) + "%", x + barWidth / 2, y - 10);
+    textAlign(CENTER);
+    text(`${Math.floor(healthRatio * 100)}%`, x + barWidth / 2, y - 2);
     pop();
   }
 
@@ -167,12 +170,12 @@ class Unit {
     if (this.run.posY > height) this.run.posY = -h;
     if (this.run.posY + h < 0) this.run.posY = height;
 
-    if (this.currentSprite !== this.attack) {
+    if (this.currentSprite !== this.attack && this.currentSprite !== this.crouch) {
       if (moving) {
         this.run.posX = this.currentSprite.posX;
         this.run.posY = this.currentSprite.posY;
         this.currentSprite = this.run;
-        this.idle.isFlipX = this.run.isFlipX; // Keep idle direction same as run
+        this.idle.isFlipX = this.run.isFlipX;
       } else if (this.currentSprite === this.run && !moving) {
         this.idle.posX = this.run.posX;
         this.idle.posY = this.run.posY;
@@ -183,15 +186,37 @@ class Unit {
   }
 
   triggerAttack() {
-    if (this.currentSprite === this.idle || this.currentSprite === this.run) {
+    if (this.currentSprite !== this.attack && this.currentSprite !== this.crouch) {
       this.attack.currentIndex = 0;
       this.attack.isLoop = false;
       this.attack.posX = this.currentSprite.posX;
       this.attack.posY = this.currentSprite.posY;
-      this.attack.isFlipX = this.lastFlipX; // Attack faces last direction
+      this.attack.isFlipX = this.lastFlipX;
       this.currentSprite = this.attack;
+      this.attackQueue++;
     }
-    this.attackQueue++;
+  }
+
+  triggerCrouch() {
+    if (this.currentSprite !== this.attack) {
+      this.crouch.currentIndex = 0;
+      this.crouch.isLoop = true;
+      this.crouch.posX = this.currentSprite.posX;
+      this.crouch.posY = this.currentSprite.posY;
+      this.crouch.isFlipX = this.lastFlipX;
+      this.currentSprite = this.crouch;
+      this.protecting = true;
+    }
+  }
+
+  releaseCrouch() {
+    if (this.currentSprite === this.crouch) {
+      this.idle.posX = this.crouch.posX;
+      this.idle.posY = this.crouch.posY;
+      this.idle.isFlipX = this.lastFlipX;
+      this.currentSprite = this.idle;
+      this.protecting = false;
+    }
   }
 
   handleAttackEnd() {
@@ -200,9 +225,8 @@ class Unit {
         if (this.attackQueue > 1) {
           this.attackQueue--;
           this.attack.currentIndex = 0;
-        } else if (this.attackQueue === 1) {
-          this.attackQueue = 0;
         } else {
+          this.attackQueue = 0;
           this.idle.posX = this.attack.posX;
           this.idle.posY = this.attack.posY;
           this.idle.isFlipX = this.lastFlipX;
@@ -212,31 +236,46 @@ class Unit {
     }
   }
 
-  // Check if attack hits opponent
   checkHit(opponent) {
     if (this.currentSprite === this.attack) {
-      let swordRange = 60; // distance in px for attack reach
+      let swordRange = 60;
       let dx = opponent.currentSprite.posX - this.currentSprite.posX;
       let dy = Math.abs(opponent.currentSprite.posY - this.currentSprite.posY);
 
-      if (dy < 40) { // vertical alignment
+      if (dy < 40) {
         if (!this.attack.isFlipX && dx > 0 && dx < swordRange) {
-          opponent.health = max(0, opponent.health - 5);
+          this.applyDamage(opponent);
         }
         if (this.attack.isFlipX && dx < 0 && Math.abs(dx) < swordRange) {
-          opponent.health = max(0, opponent.health - 5);
+          this.applyDamage(opponent);
         }
       }
+    }
+  }
+
+  applyDamage(opponent) {
+    if (opponent.protecting) {
+      let chance = random(1);
+      if (chance < 0.5) {
+        // block success → no damage
+        return;
+      } else {
+        // partial damage
+        opponent.health = max(0, opponent.health - 2);
+      }
+    } else {
+      opponent.health = max(0, opponent.health - 5);
     }
   }
 }
 
 // --- Global ---
 let warrior1, warrior2;
+let gameOver = false;
 
 function preload() {
-  warrior1 = new Unit(100, 100, 1.5, "P1", false); // faces right initially
-  warrior2 = new Unit(300, 300, 1.5, "P2", true);  // faces left initially
+  warrior1 = new Unit(100, 100, 1.5, "P1", false);
+  warrior2 = new Unit(300, 300, 1.5, "P2", true);
 
   warrior1.preload();
   warrior2.preload();
@@ -264,30 +303,55 @@ function setup() {
 function draw() {
   background(255, 204, 0);
 
+  if (gameOver) {
+    textSize(32);
+    textAlign(CENTER, CENTER);
+    fill(0);
+    text("Game Over! Press R to Restart", width / 2, height / 2);
+    return;
+  }
+
   // P1 movement (WASD)
-  warrior1.handleMovement(65, 68, 87, 83); // A, D, W, S
+  warrior1.handleMovement(65, 68, 87, 83);
 
   // P2 movement (UHJK)
-  warrior2.handleMovement(72, 75, 85, 74); // H, K, U, J
+  warrior2.handleMovement(72, 75, 85, 74);
 
-  // Check collisions (attacks)
+  // Check collisions
   warrior1.checkHit(warrior2);
   warrior2.checkHit(warrior1);
 
   warrior1.play();
   warrior2.play();
+
+  // Check game over
+  if (warrior1.health <= 0 || warrior2.health <= 0) {
+    gameOver = true;
+  }
 }
 
 function keyPressed() {
-  if (keyCode === 32) return false; // stop page scroll
+  if (keyCode === 32) return false;
 
-  // --- P1 Controls ---
+  if (gameOver && (key === 'r' || key === 'R')) {
+    preload();
+    gameOver = false;
+    return;
+  }
+
+  // P1 Controls
   if (key === 'x' || key === 'X') warrior1.triggerAttack();
+  if (key === 'q' || key === 'Q') warrior1.triggerCrouch();
 
-  // --- P2 Controls ---
+  // P2 Controls
   if (key === 'm' || key === 'M') warrior2.triggerAttack();
+  if (key === 'n' || key === 'N') warrior2.triggerCrouch();
 }
 
 function keyReleased() {
   if (keyCode === 32) return false;
+
+  // Release crouch
+  if (key === 'q' || key === 'Q') warrior1.releaseCrouch();
+  if (key === 'n' || key === 'N') warrior2.releaseCrouch();
 }
