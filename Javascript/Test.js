@@ -203,7 +203,7 @@ function keyPressed() {
     currentSprite.isLoop = !currentSprite.isLoop;
   }
 
-  if (key === 'a' || key === 'A' || keyCode === 32) { // also spacebar
+  if (key === 'x' || key === 'X' || keyCode === 32) { // also spacebar
     triggerAttack();
   }
 }
