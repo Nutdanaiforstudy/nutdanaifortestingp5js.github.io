@@ -70,8 +70,10 @@ class Sprite {
 // --- Global variables ---
 let warriorIdle;
 let warriorAttack;
+let warriorRun;
 let currentSprite;
 let attackQueue = 0; // Counts how many attack requests are queued
+let speed = 5;       // Movement speed
 
 function preload() {
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
@@ -79,6 +81,9 @@ function preload() {
 
   warriorAttack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, 100, 100, 1.5);
   warriorAttack.preload();
+
+  warriorRun = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, 100, 100, 1.5);
+  warriorRun.preload();
 }
 
 function setup() {
@@ -93,34 +98,26 @@ function setup() {
   attackButton.style('padding', '8px 16px');
 
   attackButton.mousePressed(() => {
-    // If currently idle, start attack animation and stop looping idle
-    if (currentSprite === warriorIdle) {
-      warriorAttack.currentIndex = 0;
-      warriorAttack.isLoop = false; // Attack animation doesn't loop by default
-      currentSprite = warriorAttack;
-    }
-    attackQueue++; // Queue one more attack cycle
+    triggerAttack();
   });
 }
 
 function draw() {
   background(255, 204, 0);
+
+  handleMovement();
+
   currentSprite.play();
 
   // If current animation is the attack
   if (currentSprite === warriorAttack) {
-    // When the animation hits last frame
     if (warriorAttack.currentIndex === warriorAttack.totalSize - 1) {
       if (attackQueue > 1) {
-        // If there is still queued attack requests, loop animation again
         attackQueue--;
         warriorAttack.currentIndex = 0;
       } else if (attackQueue === 1) {
-        // This is the last queued attack, allow animation to finish this cycle
         attackQueue = 0;
-        // After this cycle ends, switch back to idle
       } else {
-        // No queued attacks left, switch to idle after finishing current animation
         currentSprite = warriorIdle;
         warriorIdle.currentIndex = 0;
       }
@@ -128,6 +125,55 @@ function draw() {
   }
 }
 
+// --- Movement control ---
+function handleMovement() {
+  let moving = false;
+
+  if (keyIsDown(65)) { // A = left
+    warriorRun.isFlipX = true;
+    warriorRun.posX -= speed;
+    moving = true;
+  }
+  if (keyIsDown(68)) { // D = right
+    warriorRun.isFlipX = false;
+    warriorRun.posX += speed;
+    moving = true;
+  }
+  if (keyIsDown(87)) { // W = up
+    warriorRun.posY -= speed;
+    moving = true;
+  }
+  if (keyIsDown(83)) { // S = down
+    warriorRun.posY += speed;
+    moving = true;
+  }
+
+  if (currentSprite !== warriorAttack) {
+    if (moving) {
+      warriorRun.posX = currentSprite.posX;
+      warriorRun.posY = currentSprite.posY;
+      currentSprite = warriorRun;
+    } else if (currentSprite === warriorRun && !moving) {
+      warriorIdle.posX = warriorRun.posX;
+      warriorIdle.posY = warriorRun.posY;
+      currentSprite = warriorIdle;
+    }
+  }
+}
+
+// --- Attack trigger (button + key) ---
+function triggerAttack() {
+  if (currentSprite === warriorIdle || currentSprite === warriorRun) {
+    warriorAttack.currentIndex = 0;
+    warriorAttack.isLoop = false;
+    warriorAttack.posX = currentSprite.posX;
+    warriorAttack.posY = currentSprite.posY;
+    currentSprite = warriorAttack;
+  }
+  attackQueue++;
+}
+
+// --- Key controls ---
 function keyPressed() {
   if (key === 'f' || key === 'F') {
     currentSprite.isFlipX = !currentSprite.isFlipX;
@@ -142,12 +188,6 @@ function keyPressed() {
   }
 
   if (key === 'a' || key === 'A') {
-    // Mimic attack button behavior on keyboard
-    if (currentSprite === warriorIdle) {
-      warriorAttack.currentIndex = 0;
-      warriorAttack.isLoop = false;
-      currentSprite = warriorAttack;
-    }
-    attackQueue++;
+    triggerAttack();
   }
 }
