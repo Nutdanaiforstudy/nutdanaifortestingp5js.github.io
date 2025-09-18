@@ -312,6 +312,19 @@ function setup() {
   frameRate(30);
   canvas.elt.setAttribute("tabindex", "0");
   canvas.elt.focus();
+
+  // --- Attack buttons ---
+  const attackButton1 = createButton('P1 Attack');
+  attackButton1.position(10, height + 20);
+  attackButton1.mousePressed(() => {
+    if (warrior1) warrior1.triggerAttack();
+  });
+
+  const attackButton2 = createButton('P2 Attack');
+  attackButton2.position(120, height + 20);
+  attackButton2.mousePressed(() => {
+    if (warrior2) warrior2.triggerAttack();
+  });
 }
 
 function draw() {
