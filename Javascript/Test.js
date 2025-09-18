@@ -1,13 +1,16 @@
-// --- Sprite class (animation handler) ---
+// --- Sprite class ---
 class Sprite {
-  constructor(characterFolder, actionFolder, fileName, fileExt, totalSize, scale) {
+  constructor(characterFolder, actionFolder, fileName, fileExt, totalSize, posX, posY, scale) {
     this.characterFolder = characterFolder;
     this.actionFolder = actionFolder;
     this.fileName = fileName;
     this.fileExt = fileExt;
     this.totalSize = totalSize;
 
+    this.posX = posX;
+    this.posY = posY;
     this.spriteScale = scale;
+
     this.images = [];
     this.currentIndex = 0;
     this.isStop = false;
@@ -22,9 +25,9 @@ class Sprite {
     }
   }
 
-  render(x, y) {
+  render() {
     push();
-    translate(x, y);
+    translate(this.posX, this.posY);
 
     if (this.isFlipX) {
       scale(-this.spriteScale, this.spriteScale);
@@ -37,7 +40,7 @@ class Sprite {
     pop();
   }
 
-  renderNext(x, y) {
+  renderNext() {
     if (!this.isStop) {
       this.currentIndex++;
       if (this.currentIndex >= this.totalSize) {
@@ -48,153 +51,141 @@ class Sprite {
         }
       }
     }
-    this.render(x, y);
+    this.render();
   }
 
-  play(x, y) {
+  play() {
     if (this.isLoop) {
-      this.renderNext(x, y);
+      this.renderNext();
     } else {
       if (this.currentIndex === this.totalSize - 1) {
-        this.render(x, y);
+        this.render();
       } else {
-        this.renderNext(x, y);
+        this.renderNext();
       }
     }
   }
 }
 
-// --- Unit class (character with animations + health) ---
+// --- Unit class ---
 class Unit {
   constructor(x, y, scale = 1.5) {
-    this.x = x;
-    this.y = y;
-    this.scale = scale;
-
-    // Health system
+    this.health = 100;
     this.maxHealth = 100;
-    this.currentHealth = 100;
-
-    // Movement
     this.speed = 5;
-
-    // States
-    this.state = "idle"; // idle, run, attack
     this.attackQueue = 0;
 
     // Sprites
-    this.idle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, this.scale);
-    this.run = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, this.scale);
-    this.attack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, this.scale);
+    this.idle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, x, y, scale);
+    this.attack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, x, y, scale);
+    this.run = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, x, y, scale);
+
     this.currentSprite = this.idle;
   }
 
   preload() {
     this.idle.preload();
-    this.run.preload();
     this.attack.preload();
+    this.run.preload();
   }
 
-  update() {
+  play() {
+    this.currentSprite.play();
+    this.drawHealthBar();
+    this.handleAttackEnd();
+  }
+
+  drawHealthBar() {
+    push();
+    noStroke();
+    let barWidth = 50;
+    let barHeight = 6;
+    let healthRatio = this.health / this.maxHealth;
+
+    let x = this.currentSprite.posX + 10;
+    let y = this.currentSprite.posY - 20;
+
+    fill(255, 0, 0);
+    rect(x, y, barWidth, barHeight);
+
+    fill(0, 255, 0);
+    rect(x, y, barWidth * healthRatio, barHeight);
+    pop();
+  }
+
+  handleMovement() {
     let moving = false;
 
-    // Movement WASD
     if (keyIsDown(65)) { // A
       this.run.isFlipX = true;
-      this.x -= this.speed;
+      this.run.posX -= this.speed;
       moving = true;
     }
     if (keyIsDown(68)) { // D
       this.run.isFlipX = false;
-      this.x += this.speed;
+      this.run.posX += this.speed;
       moving = true;
     }
     if (keyIsDown(87)) { // W
-      this.y -= this.speed;
+      this.run.posY -= this.speed;
       moving = true;
     }
     if (keyIsDown(83)) { // S
-      this.y += this.speed;
+      this.run.posY += this.speed;
       moving = true;
     }
 
-    // Pac-Man style wrapping
-    let w = this.run.images[0].width * this.scale;
-    let h = this.run.images[0].height * this.scale;
+    // --- Pac-Man wrap-around ---
+    let w = this.run.images[0].width * this.run.spriteScale;
+    let h = this.run.images[0].height * this.run.spriteScale;
 
-    if (this.x > width) this.x = -w;
-    if (this.x + w < 0) this.x = width;
-    if (this.y > height) this.y = -h;
-    if (this.y + h < 0) this.y = height;
+    if (this.run.posX > width) this.run.posX = -w;
+    if (this.run.posX + w < 0) this.run.posX = width;
+    if (this.run.posY > height) this.run.posY = -h;
+    if (this.run.posY + h < 0) this.run.posY = height;
 
-    // Update state
-    if (this.state !== "attack") {
+    if (this.currentSprite !== this.attack) {
       if (moving) {
-        this.state = "run";
+        this.run.posX = this.currentSprite.posX;
+        this.run.posY = this.currentSprite.posY;
         this.currentSprite = this.run;
-      } else {
-        this.state = "idle";
+      } else if (this.currentSprite === this.run && !moving) {
+        this.idle.posX = this.run.posX;
+        this.idle.posY = this.run.posY;
         this.currentSprite = this.idle;
       }
     }
+  }
 
-    // Handle attack animation
-    if (this.state === "attack") {
+  triggerAttack() {
+    if (this.currentSprite === this.idle || this.currentSprite === this.run) {
+      this.attack.currentIndex = 0;
+      this.attack.isLoop = false;
+      this.attack.posX = this.currentSprite.posX;
+      this.attack.posY = this.currentSprite.posY;
+      this.currentSprite = this.attack;
+    }
+    this.attackQueue++;
+  }
+
+  handleAttackEnd() {
+    if (this.currentSprite === this.attack) {
       if (this.attack.currentIndex === this.attack.totalSize - 1) {
         if (this.attackQueue > 1) {
           this.attackQueue--;
           this.attack.currentIndex = 0;
+        } else if (this.attackQueue === 1) {
+          this.attackQueue = 0;
         } else {
-          this.state = "idle";
           this.currentSprite = this.idle;
+          this.idle.currentIndex = 0;
         }
       }
     }
   }
-
-  draw() {
-    // Draw sprite
-    this.currentSprite.play(this.x, this.y);
-
-    // Draw health bar
-    this.drawHealthBar();
-  }
-
-  drawHealthBar() {
-    let barWidth = 80;
-    let barHeight = 10;
-    let healthPercent = this.currentHealth / this.maxHealth;
-
-    push();
-    noStroke();
-    fill(255, 0, 0);
-    rect(this.x, this.y - 20, barWidth, barHeight); // background (red)
-    fill(0, 255, 0);
-    rect(this.x, this.y - 20, barWidth * healthPercent, barHeight); // foreground (green)
-    pop();
-  }
-
-  takeDamage(amount) {
-    this.currentHealth -= amount;
-    if (this.currentHealth < 0) this.currentHealth = 0;
-  }
-
-  heal(amount) {
-    this.currentHealth += amount;
-    if (this.currentHealth > this.maxHealth) this.currentHealth = this.maxHealth;
-  }
-
-  triggerAttack() {
-    if (this.state !== "attack") {
-      this.state = "attack";
-      this.currentSprite = this.attack;
-      this.attack.currentIndex = 0;
-    }
-    this.attackQueue++;
-  }
 }
 
-// --- Global variables ---
+// --- Global ---
 let warrior;
 
 function preload() {
@@ -206,27 +197,34 @@ function setup() {
   createCanvas(512, 512);
   frameRate(6);
 
-  // Attack button
+  // --- Attack button ---
   const attackButton = createButton('Attack');
   attackButton.position(10, 530);
-  attackButton.mousePressed(() => {
-    warrior.triggerAttack();
-  });
+  attackButton.style('font-size', '16px');
+  attackButton.style('padding', '8px 16px');
+  attackButton.mousePressed(() => warrior.triggerAttack());
+
+  // Autofocus
+  canvas = document.querySelector('canvas');
+  canvas.setAttribute('tabindex', '0');
+  canvas.focus();
 }
 
 function draw() {
   background(255, 204, 0);
-  warrior.update();
-  warrior.draw();
+  warrior.handleMovement();
+  warrior.play();
 }
 
 function keyPressed() {
-  if (keyCode === 32) {
-    warrior.triggerAttack();
-    return false; // prevent page scroll
-  }
+  if (keyCode === 32) return false; // stop page scroll
 
-  if (key === 'c' || key === 'C') {
-    warrior.currentSprite.isStop = !warrior.currentSprite.isStop;
-  }
+  if (key === 'f' || key === 'F') warrior.currentSprite.isFlipX = !warrior.currentSprite.isFlipX;
+  if (key === 'c' || key === 'C') warrior.currentSprite.isStop = !warrior.currentSprite.isStop;
+  if (key === 'l' || key === 'L') warrior.currentSprite.isLoop = !warrior.currentSprite.isLoop;
+  if (key === 'x' || key === 'X' || keyCode === 32) warrior.triggerAttack();
+}
+
+function keyReleased() {
+  if (keyCode === 32) return false;
 }
