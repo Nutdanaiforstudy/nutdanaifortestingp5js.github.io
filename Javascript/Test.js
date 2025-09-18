@@ -101,7 +101,7 @@ function setup() {
     triggerAttack();
   });
 
-  // Autofocus canvas so arrow keys work without clicking
+  // Autofocus canvas so keys work without clicking
   canvas = document.querySelector('canvas');
   canvas.setAttribute('tabindex', '0');
   canvas.focus();
@@ -130,27 +130,44 @@ function draw() {
   }
 }
 
-// --- Movement control (Arrow keys) ---
+// --- Movement control (WASD keys) ---
 function handleMovement() {
   let moving = false;
 
-  if (keyIsDown(LEFT_ARROW)) { // ← left
+  if (keyIsDown(65)) { // A = left
     warriorRun.isFlipX = true;
     warriorRun.posX -= speed;
     moving = true;
   }
-  if (keyIsDown(RIGHT_ARROW)) { // → right
+  if (keyIsDown(68)) { // D = right
     warriorRun.isFlipX = false;
     warriorRun.posX += speed;
     moving = true;
   }
-  if (keyIsDown(UP_ARROW)) { // ↑ up
+  if (keyIsDown(87)) { // W = up
     warriorRun.posY -= speed;
     moving = true;
   }
-  if (keyIsDown(DOWN_ARROW)) { // ↓ down
+  if (keyIsDown(83)) { // S = down
     warriorRun.posY += speed;
     moving = true;
+  }
+
+  // --- Pac-Man style screen wrapping ---
+  let w = warriorRun.images[0].width * warriorRun.spriteScale;
+  let h = warriorRun.images[0].height * warriorRun.spriteScale;
+
+  if (warriorRun.posX > width) {
+    warriorRun.posX = -w;
+  }
+  if (warriorRun.posX + w < 0) {
+    warriorRun.posX = width;
+  }
+  if (warriorRun.posY > height) {
+    warriorRun.posY = -h;
+  }
+  if (warriorRun.posY + h < 0) {
+    warriorRun.posY = height;
   }
 
   if (currentSprite !== warriorAttack) {
@@ -180,14 +197,8 @@ function triggerAttack() {
 
 // --- Key controls ---
 function keyPressed() {
-  // Prevent page scrolling on arrow/space
-  if (
-    keyCode === LEFT_ARROW ||
-    keyCode === RIGHT_ARROW ||
-    keyCode === UP_ARROW ||
-    keyCode === DOWN_ARROW ||
-    keyCode === 32
-  ) {
+  // Prevent page scrolling on space
+  if (keyCode === 32) {
     return false; // stop browser default
   }
 
@@ -203,19 +214,13 @@ function keyPressed() {
     currentSprite.isLoop = !currentSprite.isLoop;
   }
 
-  if (key === 'x' || key === 'X' || keyCode === 32) { // also spacebar
+  if (key === 'x' || key === 'X' || keyCode === 32) { // X or Spacebar
     triggerAttack();
   }
 }
 
 function keyReleased() {
-  if (
-    keyCode === LEFT_ARROW ||
-    keyCode === RIGHT_ARROW ||
-    keyCode === UP_ARROW ||
-    keyCode === DOWN_ARROW ||
-    keyCode === 32
-  ) {
+  if (keyCode === 32) {
     return false;
   }
 }
