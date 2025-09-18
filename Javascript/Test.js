@@ -20,7 +20,6 @@ class Sprite {
 
   preload() {
     for (let i = 1; i <= this.totalSize; i++) {
-      // Correct path (no double dots)
       let path = `${this.characterFolder}/${this.actionFolder}/${this.fileName}${i}.${this.fileExt}`;
       this.images.push(loadImage(path));
     }
@@ -71,34 +70,66 @@ class Sprite {
 // --- Global variables ---
 let warriorIdle;
 let warriorAttack;
+let currentSprite;
 
 function preload() {
-  // Example: Warrior/idle/Warrior_Idle_1.png ... Warrior_Idle_6.png
+  // Load idle animation (6 frames)
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
   warriorIdle.preload();
 
+  // Load attack animation (12 frames)
   warriorAttack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, 100, 100, 1.5);
   warriorAttack.preload();
 }
 
 function setup() {
   createCanvas(512, 512);
-  frameRate(6); // controls speed
+  frameRate(6); // Animation speed
+  currentSprite = warriorIdle; // Start with idle animation
+
+  // --- Attack Button for mobile/touch devices ---
+  let attackButton = createButton('Attack');
+  attackButton.position(10, height + 10); // Below the canvas
+  attackButton.style('font-size', '16px');
+  attackButton.style('padding', '8px 16px');
+  attackButton.mousePressed(() => {
+    warriorAttack.currentIndex = 0;
+    warriorAttack.isLoop = false;
+    currentSprite = warriorAttack;
+  });
 }
 
 function draw() {
-  background(255, 204, 0);
-  warriorIdle.play();
+  background(255, 204, 0); // Yellow background
+  currentSprite.play();
+
+  // Automatically return to idle after attack animation finishes
+  if (
+    currentSprite === warriorAttack &&
+    warriorAttack.currentIndex === warriorAttack.totalSize - 1 &&
+    !warriorAttack.isLoop
+  ) {
+    currentSprite = warriorIdle;
+    warriorIdle.currentIndex = 0;
+  }
 }
 
 function keyPressed() {
   if (key === 'f' || key === 'F') {
-    warriorIdle.isFlipX = !warriorIdle.isFlipX;
+    currentSprite.isFlipX = !currentSprite.isFlipX;
   }
+
   if (key === 's' || key === 'S') {
-    warriorIdle.isStop = !warriorIdle.isStop;
+    currentSprite.isStop = !currentSprite.isStop;
   }
+
   if (key === 'l' || key === 'L') {
-    warriorIdle.isLoop = !warriorIdle.isLoop;
+    currentSprite.isLoop = !currentSprite.isLoop;
+  }
+
+  if (key === 'a' || key === 'A') {
+    warriorAttack.currentIndex = 0;
+    warriorAttack.isLoop = false;
+    currentSprite = warriorAttack;
   }
 }
