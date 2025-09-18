@@ -4,7 +4,7 @@ class Sprite {
     this.characterFolder = characterFolder;
     this.actionFolder = actionFolder;
     this.fileName = fileName;
-    this.fileExt = fileExt; // should be "png" (no dot)
+    this.fileExt = fileExt;
     this.totalSize = totalSize;
 
     this.posX = posX;
@@ -59,7 +59,7 @@ class Sprite {
       this.renderNext();
     } else {
       if (this.currentIndex === this.totalSize - 1) {
-        this.render(); // stay at last frame
+        this.render();
       } else {
         this.renderNext();
       }
@@ -73,23 +73,21 @@ let warriorAttack;
 let currentSprite;
 
 function preload() {
-  // Load idle animation (6 frames)
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
   warriorIdle.preload();
 
-  // Load attack animation (12 frames)
   warriorAttack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, 100, 100, 1.5);
   warriorAttack.preload();
 }
 
 function setup() {
   createCanvas(512, 512);
-  frameRate(6); // Animation speed
-  currentSprite = warriorIdle; // Start with idle animation
+  frameRate(6);
+  currentSprite = warriorIdle;
 
-  // --- Attack Button for mobile/touch devices ---
-  let attackButton = createButton('Attack');
-  attackButton.position(10, height + 10); // Below the canvas
+  // --- Make sure the button is created after the canvas ---
+  const attackButton = createButton('Attack');
+  attackButton.position(10, 530); // or use: windowHeight - or height + offset
   attackButton.style('font-size', '16px');
   attackButton.style('padding', '8px 16px');
   attackButton.mousePressed(() => {
@@ -100,10 +98,9 @@ function setup() {
 }
 
 function draw() {
-  background(255, 204, 0); // Yellow background
+  background(255, 204, 0);
   currentSprite.play();
 
-  // Automatically return to idle after attack animation finishes
   if (
     currentSprite === warriorAttack &&
     warriorAttack.currentIndex === warriorAttack.totalSize - 1 &&
