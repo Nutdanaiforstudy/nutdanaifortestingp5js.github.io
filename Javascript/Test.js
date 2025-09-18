@@ -73,7 +73,7 @@ let warriorIdle;
 
 function preload() {
   // Example: Warrior/idle/Warrior_Idle_1.png ... Warrior_Idle_6.png
-  warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 300, 300, 1.5);
+  warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 1000, 1000, 1.5);
   warriorIdle.preload();
 }
 
