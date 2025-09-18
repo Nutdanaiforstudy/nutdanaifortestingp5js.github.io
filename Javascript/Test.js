@@ -69,7 +69,7 @@ class Sprite {
 
 // --- Unit class ---
 class Unit {
-  constructor(x, y, scale = 1.5, label = "P") {
+  constructor(x, y, scale = 1.5, label = "P", faceLeft = false) {
     this.label = label;
     this.health = 100;
     this.maxHealth = 100;
@@ -82,7 +82,8 @@ class Unit {
     this.run = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, x, y, scale);
 
     this.currentSprite = this.idle;
-    this.lastFlipX = false; // Track last facing direction
+    this.lastFlipX = faceLeft; // Track last facing direction
+    this.idle.isFlipX = faceLeft;
   }
 
   preload() {
@@ -108,11 +109,19 @@ class Unit {
     let x = this.currentSprite.posX + 10;
     let y = this.currentSprite.posY - 25;
 
+    // Red background
     fill(255, 0, 0);
     rect(x, y, barWidth, barHeight);
 
+    // Green foreground
     fill(0, 255, 0);
     rect(x, y, barWidth * healthRatio, barHeight);
+
+    // Percentage text
+    fill(0);
+    textSize(10);
+    textAlign(CENTER, CENTER);
+    text(Math.round(healthRatio * 100) + "%", x + barWidth / 2, y - 10);
     pop();
   }
 
@@ -226,8 +235,8 @@ class Unit {
 let warrior1, warrior2;
 
 function preload() {
-  warrior1 = new Unit(100, 100, 1.5, "P1");
-  warrior2 = new Unit(300, 300, 1.5, "P2");
+  warrior1 = new Unit(100, 100, 1.5, "P1", false); // faces right initially
+  warrior2 = new Unit(300, 300, 1.5, "P2", true);  // faces left initially
 
   warrior1.preload();
   warrior2.preload();
