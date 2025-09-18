@@ -75,6 +75,7 @@ class Unit {
     this.maxHealth = 100;
     this.speed = 5;
     this.attackQueue = 0;
+    this.facing = 1; // 1 = right, -1 = left
 
     // Sprites
     this.idle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, x, y, scale);
@@ -129,11 +130,13 @@ class Unit {
 
     if (keyIsDown(left)) { // Left
       this.run.isFlipX = true;
+      this.facing = -1;
       this.run.posX -= this.speed;
       moving = true;
     }
     if (keyIsDown(right)) { // Right
       this.run.isFlipX = false;
+      this.facing = 1;
       this.run.posX += this.speed;
       moving = true;
     }
@@ -172,6 +175,7 @@ class Unit {
     if (this.currentSprite === this.idle || this.currentSprite === this.run) {
       this.attack.currentIndex = 0;
       this.attack.isLoop = false;
+      this.attack.isFlipX = this.facing === -1; // Face attack direction
       this.attack.posX = this.currentSprite.posX;
       this.attack.posY = this.currentSprite.posY;
       this.currentSprite = this.attack;
@@ -192,6 +196,48 @@ class Unit {
           this.idle.currentIndex = 0;
         }
       }
+    }
+  }
+
+  // --- Attack hitbox ---
+  getAttackHitbox() {
+    if (this.currentSprite !== this.attack) return null;
+
+    let w = this.attack.images[0].width * this.attack.spriteScale;
+    let h = this.attack.images[0].height * this.attack.spriteScale;
+
+    let offset = this.facing * (w * 0.6); // Sword extends outward
+    return {
+      x: this.attack.posX + (this.facing === 1 ? offset : offset - w * 0.4),
+      y: this.attack.posY,
+      w: w * 0.6,
+      h: h * 0.8
+    };
+  }
+
+  getBodyHitbox() {
+    let w = this.idle.images[0].width * this.idle.spriteScale;
+    let h = this.idle.images[0].height * this.idle.spriteScale;
+    return {
+      x: this.currentSprite.posX,
+      y: this.currentSprite.posY,
+      w: w,
+      h: h
+    };
+  }
+
+  checkHit(opponent) {
+    let sword = this.getAttackHitbox();
+    if (!sword) return;
+
+    let body = opponent.getBodyHitbox();
+    if (
+      sword.x < body.x + body.w &&
+      sword.x + sword.w > body.x &&
+      sword.y < body.y + body.h &&
+      sword.y + sword.h > body.y
+    ) {
+      opponent.health = max(0, opponent.health - 5); // reduce health
     }
   }
 }
@@ -235,17 +281,19 @@ function draw() {
   // P2 movement (UHJK)
   warrior2.handleMovement(72, 75, 85, 74); // H, K, U, J
 
+  // Draw + play
   warrior1.play();
   warrior2.play();
+
+  // Check attacks
+  warrior1.checkHit(warrior2);
+  warrior2.checkHit(warrior1);
 }
 
 function keyPressed() {
   if (keyCode === 32) return false; // stop page scroll
 
   // --- P1 Controls ---
-  if (key === 'f' || key === 'F') warrior1.currentSprite.isFlipX = !warrior1.currentSprite.isFlipX;
-  if (key === 'c' || key === 'C') warrior1.currentSprite.isStop = !warrior1.currentSprite.isStop;
-  if (key === 'l' || key === 'L') warrior1.currentSprite.isLoop = !warrior1.currentSprite.isLoop;
   if (key === 'x' || key === 'X') warrior1.triggerAttack();
 
   // --- P2 Controls ---
