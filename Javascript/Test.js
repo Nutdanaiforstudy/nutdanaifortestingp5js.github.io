@@ -75,7 +75,6 @@ class Unit {
     this.maxHealth = 100;
     this.speed = 5;
     this.attackQueue = 0;
-    this.facing = 1; // 1 = right, -1 = left
 
     // Sprites
     this.idle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, x, y, scale);
@@ -83,6 +82,7 @@ class Unit {
     this.run = new Sprite("Warrior", "Run", "Warrior_Run_", "png", 8, x, y, scale);
 
     this.currentSprite = this.idle;
+    this.lastFlipX = false; // Track last facing direction
   }
 
   preload() {
@@ -128,28 +128,28 @@ class Unit {
   handleMovement(left, right, up, down) {
     let moving = false;
 
-    if (keyIsDown(left)) { // Left
+    if (keyIsDown(left)) {
       this.run.isFlipX = true;
-      this.facing = -1;
       this.run.posX -= this.speed;
+      this.lastFlipX = true;
       moving = true;
     }
-    if (keyIsDown(right)) { // Right
+    if (keyIsDown(right)) {
       this.run.isFlipX = false;
-      this.facing = 1;
       this.run.posX += this.speed;
+      this.lastFlipX = false;
       moving = true;
     }
-    if (keyIsDown(up)) { // Up
+    if (keyIsDown(up)) {
       this.run.posY -= this.speed;
       moving = true;
     }
-    if (keyIsDown(down)) { // Down
+    if (keyIsDown(down)) {
       this.run.posY += this.speed;
       moving = true;
     }
 
-    // --- Pac-Man wrap-around ---
+    // Pac-Man wrap-around
     let w = this.run.images[0].width * this.run.spriteScale;
     let h = this.run.images[0].height * this.run.spriteScale;
 
@@ -163,9 +163,11 @@ class Unit {
         this.run.posX = this.currentSprite.posX;
         this.run.posY = this.currentSprite.posY;
         this.currentSprite = this.run;
+        this.idle.isFlipX = this.run.isFlipX; // Keep idle direction same as run
       } else if (this.currentSprite === this.run && !moving) {
         this.idle.posX = this.run.posX;
         this.idle.posY = this.run.posY;
+        this.idle.isFlipX = this.lastFlipX;
         this.currentSprite = this.idle;
       }
     }
@@ -175,9 +177,9 @@ class Unit {
     if (this.currentSprite === this.idle || this.currentSprite === this.run) {
       this.attack.currentIndex = 0;
       this.attack.isLoop = false;
-      this.attack.isFlipX = this.facing === -1; // Face attack direction
       this.attack.posX = this.currentSprite.posX;
       this.attack.posY = this.currentSprite.posY;
+      this.attack.isFlipX = this.lastFlipX; // Attack faces last direction
       this.currentSprite = this.attack;
     }
     this.attackQueue++;
@@ -192,52 +194,30 @@ class Unit {
         } else if (this.attackQueue === 1) {
           this.attackQueue = 0;
         } else {
+          this.idle.posX = this.attack.posX;
+          this.idle.posY = this.attack.posY;
+          this.idle.isFlipX = this.lastFlipX;
           this.currentSprite = this.idle;
-          this.idle.currentIndex = 0;
         }
       }
     }
   }
 
-  // --- Attack hitbox ---
-  getAttackHitbox() {
-    if (this.currentSprite !== this.attack) return null;
-
-    let w = this.attack.images[0].width * this.attack.spriteScale;
-    let h = this.attack.images[0].height * this.attack.spriteScale;
-
-    let offset = this.facing * (w * 0.6); // Sword extends outward
-    return {
-      x: this.attack.posX + (this.facing === 1 ? offset : offset - w * 0.4),
-      y: this.attack.posY,
-      w: w * 0.6,
-      h: h * 0.8
-    };
-  }
-
-  getBodyHitbox() {
-    let w = this.idle.images[0].width * this.idle.spriteScale;
-    let h = this.idle.images[0].height * this.idle.spriteScale;
-    return {
-      x: this.currentSprite.posX,
-      y: this.currentSprite.posY,
-      w: w,
-      h: h
-    };
-  }
-
+  // Check if attack hits opponent
   checkHit(opponent) {
-    let sword = this.getAttackHitbox();
-    if (!sword) return;
+    if (this.currentSprite === this.attack) {
+      let swordRange = 60; // distance in px for attack reach
+      let dx = opponent.currentSprite.posX - this.currentSprite.posX;
+      let dy = Math.abs(opponent.currentSprite.posY - this.currentSprite.posY);
 
-    let body = opponent.getBodyHitbox();
-    if (
-      sword.x < body.x + body.w &&
-      sword.x + sword.w > body.x &&
-      sword.y < body.y + body.h &&
-      sword.y + sword.h > body.y
-    ) {
-      opponent.health = max(0, opponent.health - 5); // reduce health
+      if (dy < 40) { // vertical alignment
+        if (!this.attack.isFlipX && dx > 0 && dx < swordRange) {
+          opponent.health = max(0, opponent.health - 5);
+        }
+        if (this.attack.isFlipX && dx < 0 && Math.abs(dx) < swordRange) {
+          opponent.health = max(0, opponent.health - 5);
+        }
+      }
     }
   }
 }
@@ -257,7 +237,7 @@ function setup() {
   createCanvas(512, 512);
   frameRate(6);
 
-  // --- Attack buttons ---
+  // Attack buttons
   const attackButton1 = createButton('P1 Attack');
   attackButton1.position(10, 530);
   attackButton1.mousePressed(() => warrior1.triggerAttack());
@@ -281,13 +261,12 @@ function draw() {
   // P2 movement (UHJK)
   warrior2.handleMovement(72, 75, 85, 74); // H, K, U, J
 
-  // Draw + play
-  warrior1.play();
-  warrior2.play();
-
-  // Check attacks
+  // Check collisions (attacks)
   warrior1.checkHit(warrior2);
   warrior2.checkHit(warrior1);
+
+  warrior1.play();
+  warrior2.play();
 }
 
 function keyPressed() {
