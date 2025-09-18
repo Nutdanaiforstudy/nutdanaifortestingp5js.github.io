@@ -100,6 +100,11 @@ function setup() {
   attackButton.mousePressed(() => {
     triggerAttack();
   });
+
+  // Autofocus canvas so arrow keys work without clicking
+  canvas = document.querySelector('canvas');
+  canvas.setAttribute('tabindex', '0');
+  canvas.focus();
 }
 
 function draw() {
@@ -175,6 +180,17 @@ function triggerAttack() {
 
 // --- Key controls ---
 function keyPressed() {
+  // Prevent page scrolling on arrow/space
+  if (
+    keyCode === LEFT_ARROW ||
+    keyCode === RIGHT_ARROW ||
+    keyCode === UP_ARROW ||
+    keyCode === DOWN_ARROW ||
+    keyCode === 32
+  ) {
+    return false; // stop browser default
+  }
+
   if (key === 'f' || key === 'F') {
     currentSprite.isFlipX = !currentSprite.isFlipX;
   }
@@ -187,7 +203,19 @@ function keyPressed() {
     currentSprite.isLoop = !currentSprite.isLoop;
   }
 
-  if (key === 'a' || key === 'A') {
+  if (key === 'a' || key === 'A' || keyCode === 32) { // also spacebar
     triggerAttack();
+  }
+}
+
+function keyReleased() {
+  if (
+    keyCode === LEFT_ARROW ||
+    keyCode === RIGHT_ARROW ||
+    keyCode === UP_ARROW ||
+    keyCode === DOWN_ARROW ||
+    keyCode === 32
+  ) {
+    return false;
   }
 }
