@@ -71,7 +71,7 @@ class Sprite {
 let warriorIdle;
 let warriorAttack;
 let currentSprite;
-let attackQueue = 0;
+let attackQueue = 0; // Counts how many attack requests are queued
 
 function preload() {
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
@@ -91,13 +91,15 @@ function setup() {
   attackButton.position(10, 530);
   attackButton.style('font-size', '16px');
   attackButton.style('padding', '8px 16px');
+
   attackButton.mousePressed(() => {
+    // If currently idle, start attack animation and stop looping idle
     if (currentSprite === warriorIdle) {
       warriorAttack.currentIndex = 0;
-      warriorAttack.isLoop = false;
+      warriorAttack.isLoop = false; // Attack animation doesn't loop by default
       currentSprite = warriorAttack;
     }
-    attackQueue++;
+    attackQueue++; // Queue one more attack cycle
   });
 }
 
@@ -105,18 +107,23 @@ function draw() {
   background(255, 204, 0);
   currentSprite.play();
 
-  // Smooth chaining of attack animation
-  if (
-    currentSprite === warriorAttack &&
-    warriorAttack.currentIndex === warriorAttack.totalSize - 1
-  ) {
-    if (attackQueue > 1) {
-      attackQueue--;
-      warriorAttack.currentIndex = 0;
-    } else {
-      attackQueue = 0;
-      currentSprite = warriorIdle;
-      warriorIdle.currentIndex = 0;
+  // If current animation is the attack
+  if (currentSprite === warriorAttack) {
+    // When the animation hits last frame
+    if (warriorAttack.currentIndex === warriorAttack.totalSize - 1) {
+      if (attackQueue > 1) {
+        // If there is still queued attack requests, loop animation again
+        attackQueue--;
+        warriorAttack.currentIndex = 0;
+      } else if (attackQueue === 1) {
+        // This is the last queued attack, allow animation to finish this cycle
+        attackQueue = 0;
+        // After this cycle ends, switch back to idle
+      } else {
+        // No queued attacks left, switch to idle after finishing current animation
+        currentSprite = warriorIdle;
+        warriorIdle.currentIndex = 0;
+      }
     }
   }
 }
@@ -135,6 +142,7 @@ function keyPressed() {
   }
 
   if (key === 'a' || key === 'A') {
+    // Mimic attack button behavior on keyboard
     if (currentSprite === warriorIdle) {
       warriorAttack.currentIndex = 0;
       warriorAttack.isLoop = false;
