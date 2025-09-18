@@ -71,6 +71,7 @@ class Sprite {
 let warriorIdle;
 let warriorAttack;
 let currentSprite;
+let attackQueue = 0;
 
 function preload() {
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
@@ -85,15 +86,18 @@ function setup() {
   frameRate(6);
   currentSprite = warriorIdle;
 
-  // --- Make sure the button is created after the canvas ---
+  // --- Create the Attack button ---
   const attackButton = createButton('Attack');
-  attackButton.position(10, 530); // or use: windowHeight - or height + offset
+  attackButton.position(10, 530);
   attackButton.style('font-size', '16px');
   attackButton.style('padding', '8px 16px');
   attackButton.mousePressed(() => {
-    warriorAttack.currentIndex = 0;
-    warriorAttack.isLoop = false;
-    currentSprite = warriorAttack;
+    if (currentSprite === warriorIdle) {
+      warriorAttack.currentIndex = 0;
+      warriorAttack.isLoop = false;
+      currentSprite = warriorAttack;
+    }
+    attackQueue++;
   });
 }
 
@@ -101,13 +105,19 @@ function draw() {
   background(255, 204, 0);
   currentSprite.play();
 
+  // Smooth chaining of attack animation
   if (
     currentSprite === warriorAttack &&
-    warriorAttack.currentIndex === warriorAttack.totalSize - 1 &&
-    !warriorAttack.isLoop
+    warriorAttack.currentIndex === warriorAttack.totalSize - 1
   ) {
-    currentSprite = warriorIdle;
-    warriorIdle.currentIndex = 0;
+    if (attackQueue > 1) {
+      attackQueue--;
+      warriorAttack.currentIndex = 0;
+    } else {
+      attackQueue = 0;
+      currentSprite = warriorIdle;
+      warriorIdle.currentIndex = 0;
+    }
   }
 }
 
@@ -125,8 +135,11 @@ function keyPressed() {
   }
 
   if (key === 'a' || key === 'A') {
-    warriorAttack.currentIndex = 0;
-    warriorAttack.isLoop = false;
-    currentSprite = warriorAttack;
+    if (currentSprite === warriorIdle) {
+      warriorAttack.currentIndex = 0;
+      warriorAttack.isLoop = false;
+      currentSprite = warriorAttack;
+    }
+    attackQueue++;
   }
 }
