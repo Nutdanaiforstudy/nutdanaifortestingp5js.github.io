@@ -70,11 +70,15 @@ class Sprite {
 
 // --- Global variables ---
 let warriorIdle;
+let warriorAttack;
 
 function preload() {
   // Example: Warrior/idle/Warrior_Idle_1.png ... Warrior_Idle_6.png
   warriorIdle = new Sprite("Warrior", "idle", "Warrior_Idle_", "png", 6, 100, 100, 1.5);
   warriorIdle.preload();
+
+  warriorAttack = new Sprite("Warrior", "Attack", "Warrior_Attack_", "png", 12, 100, 100, 1.5);
+  warriorAttack.preload();
 }
 
 function setup() {
